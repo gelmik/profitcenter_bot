@@ -2,7 +2,7 @@ import io
 import re
 
 import httpx
-import pyautogui
+# import pyautogui
 import w3lib.url
 from PIL import Image
 from selenium import webdriver
@@ -185,12 +185,12 @@ class Bot:
             header = self.driver.find_element(By.XPATH, "//table[@class='frame_table']")
             self.driver.execute_script("arguments[0].focus();", header)
 
-            pyautogui.moveTo(x=600, y=600, duration=0.2)
-            pyautogui.moveTo(x=400, y=110, duration=0.2)
-
-            pyautogui.mouseDown(button='left', x=400, y=110)
-            pyautogui.moveTo(x=450, y=115, duration=0.1)
-            pyautogui.mouseUp(button='left')
+            # pyautogui.moveTo(x=600, y=600, duration=0.2)
+            # pyautogui.moveTo(x=400, y=110, duration=0.2)
+            #
+            # pyautogui.mouseDown(button='left', x=400, y=110)
+            # pyautogui.moveTo(x=450, y=115, duration=0.1)
+            # pyautogui.mouseUp(button='left')
 
             link = self.driver.find_element(By.XPATH, "//button[text()='Подтвердить просмотр']")
             # self.driver.execute_script('arguments[0].click();', link)
@@ -291,7 +291,7 @@ def get_tasks():
     return tasks
 
 
-bot = Bot("sadsadsadas94", "vzgrtggv")
+bot = Bot(LOGIN, PASSWORD)
 
 bot.sign_in()
 bot.go_to_youtube_task()
