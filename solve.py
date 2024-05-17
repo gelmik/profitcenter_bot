@@ -13,15 +13,6 @@ from PIL import Image
 from io import BytesIO
 import base64
 
-from dotenv import load_dotenv
-
-load_dotenv()
-
-URL = os.getenv('URL')
-ACCESS_KEY = os.getenv('ACCESS_KEY')
-SECRET_KEY = os.getenv('SECRET_KEY')
-BUCKET = os.getenv('BUCKET')
-
 
 async def image_difference(img1, img2):
     h1 = img1.histogram()
@@ -82,9 +73,12 @@ class Determinant:
         self.groups = {}
         self.create_groups()
 
-    def solve(self, image):
-        image_crop = ImageCrops(image, self.levels, self.window_size)
-        min_diff = 10**10
+    def base64_to_pil(self, base_64):
+        return Image.open(BytesIO(base64.b64decode(base_64)))
+
+    def solve(self, base64):
+        image_crop = ImageCrops(self.base64_to_pil(base64), self.levels, self.window_size)
+        min_diff = 1
         tgroup = None
         for group in self.groups:
             for gimage in self.groups[group]:
@@ -95,9 +89,9 @@ class Determinant:
         return tgroup
 
     def create_groups(self):
-        dirs = [d for d in os.listdir("cimages")]
+        dirs = [d for d in os.listdir('profitcenter/cimages')]
         for dir in dirs:
-            images = [Image.open(join("cimages", dir, f)) for f in os.listdir(join("cimages", dir))]
+            images = [Image.open(join('profitcenter/cimages', dir, f)) for f in os.listdir(join('profitcenter/cimages', dir))]
             self.groups[dir] = []
             for image in images:
                 self.groups[dir].append(ImageCrops(image, self.levels, self.window_size))

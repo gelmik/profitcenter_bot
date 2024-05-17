@@ -2,8 +2,8 @@ BTN_BIG_GREEN = "//span[@class='btn_big_green']"
 INPUT_USERNAME_FIELD = "//form[@id='login-form']//input[@class='login_vh' and @name='username']"
 INPUT_PASSWORD_FIELD = "//form[@id='login-form']//input[@class='login_vh' and @name='password']"
 
-LOGIN = "test_accaunt_4"
-PASSWORD = "jkrpjvr6"
+LOGIN = "partmova"
+PASSWORD = "0ura56r5"
 
 BTN_GRIND = "//a[contains(text(), 'Заработок')]"
 BTN_YOUTUBE = "//a[contains(text(), 'Youtube')]"
@@ -36,11 +36,12 @@ CHECKBOX_MEN = "//input[@value='female']//ancestor::label//span[contains(text(),
 FIELD_NAME_MAIL = "//input[@name='partial_login']"
 
 
-LIST_EMAILS = "//div[@data-email and not(contains(@data-email, '@mail') or contains(@data-email, '@internet'))]"
+LIST_EMAILS = "//div[@data-email and not(contains(@data-email, '@mail') or contains(@data-email, '@internet') or contains(@data-email, '@bk'))]"
 CHOICE_EMAIL = "//div[@data-email]//a[(contains(text(), '{}'))]"
 
 GENERATE_PASSWORD = "//a[contains(text(), 'Сгенерировать')]"
 
+FIELD_EMAIL = "//input[@name='partial_login']"
 FIELD_PASSWORD = "//input[@name='password']"
 
 CREATE_MAIL_BTN = "//button[@type='submit' and not(@tabindex)]/span[contains(text(), 'Создать')]"
@@ -48,3 +49,13 @@ CREATE_MAIL_BTN = "//button[@type='submit' and not(@tabindex)]/span[contains(tex
 MAIL_CAPTCHA_IMG = "//img[@alt='Код']"
 
 REFRESH_MAIL_CAPTCHA = "//a[contains(text(), 'Не вижу')]"
+
+FIELD_INPUT_CAPTHCA = "//input[@placeholder='Код']"
+
+BTN_CONTINUE = "//button[./span[contains(text(), 'Продолжить')]]"
+
+ERROR_ENTER_PHONE = "//small[contains(text(), 'Укажите телефон')]"
+
+BALANCE = "//font[./span[@id='new-money-ballans']]"
+
+BOT_TOKEN = "7032701780:AAHAM6jfvMWWXxl3yHYR-ZnHxXze0X_FU5U"
