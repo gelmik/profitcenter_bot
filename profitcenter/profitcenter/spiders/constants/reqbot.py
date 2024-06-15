@@ -83,6 +83,69 @@ CNST_GET_CAPTCHA = ReqConstant(url='https://profitcentr.com/ajax/log_reg.php',
                                }
                                )
 
+CNST_REG_CAPTCHA_REGISTER = ReqConstant(url='https://profitcentr.com/ajax/log_reg.php',
+                               method='POST',
+                               headers={
+                                   'Host': 'profitcentr.com',
+                                   # 'Content-Length': '707',
+                                   'Sec-Ch-Ua': '"Not-A.Brand";v="99", "Chromium";v="124"',
+                                   'Accept': 'application/json, text/javascript, */*; q=0.01',
+                                   'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                                   'X-Requested-With': 'XMLHttpRequest',
+                                   'Sec-Ch-Ua-Mobile': '?0',
+                                   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.118 Safari/537.36',
+                                   'Sec-Ch-Ua-Platform': '"Windows"',
+                                   'Origin': 'https://profitcentr.com',
+                                   'Sec-Fetch-Site': 'same-origin',
+                                   'Sec-Fetch-Mode': 'cors',
+                                   'Sec-Fetch-Dest': 'empty',
+                                   # 'Referer': 'https://profitcentr.com/login',
+                                   # 'Accept-Encoding': 'gzip, deflate, br',
+                                   'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+                                   'Priority': 'u=4, i',
+                                   # 'Cookie': 'SESSIONID=abkqkp4uvulq965o1bbpl7o35t; googtrans=null; googtrans=null; newprov_png=8c4e2b131511ed4a9b249826bab85c9a; newprov_etag=8c4e2b131511ed4a9b249826bab85c9a; newprov_cache=8c4e2b131511ed4a9b249826bab85c9a; menu_ref=8c4e2b131511ed4a9b249826bab85c9a',
+                               },
+                               formdata={
+                                   'username': '',
+                                   'email': '',
+                                   'referer': '',
+                                   'capcha[]': [],
+                                   'func': 'register',
+                                   'dopinfa': 'ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 Ti (0x000024C9) Direct3D11 vs_5_0 ps_5_0, D3D11)',
+                               }
+                               )
+
+CNST_REG_CAPTCHA_ACTIVATE = ReqConstant(url='https://profitcentr.com/ajax/log_reg.php',
+                               method='POST',
+                               headers={
+                                   'Host': 'profitcentr.com',
+                                   # 'Content-Length': '707',
+                                   'Sec-Ch-Ua': '"Not-A.Brand";v="99", "Chromium";v="124"',
+                                   'Accept': 'application/json, text/javascript, */*; q=0.01',
+                                   'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                                   'X-Requested-With': 'XMLHttpRequest',
+                                   'Sec-Ch-Ua-Mobile': '?0',
+                                   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.118 Safari/537.36',
+                                   'Sec-Ch-Ua-Platform': '"Windows"',
+                                   'Origin': 'https://profitcentr.com',
+                                   'Sec-Fetch-Site': 'same-origin',
+                                   'Sec-Fetch-Mode': 'cors',
+                                   'Sec-Fetch-Dest': 'empty',
+                                   # 'Referer': 'https://profitcentr.com/login',
+                                   # 'Accept-Encoding': 'gzip, deflate, br',
+                                   'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+                                   'Priority': 'u=4, i',
+                                   # 'Cookie': 'SESSIONID=abkqkp4uvulq965o1bbpl7o35t; googtrans=null; googtrans=null; newprov_png=8c4e2b131511ed4a9b249826bab85c9a; newprov_etag=8c4e2b131511ed4a9b249826bab85c9a; newprov_cache=8c4e2b131511ed4a9b249826bab85c9a; menu_ref=8c4e2b131511ed4a9b249826bab85c9a',
+                               },
+                               formdata={
+                                   'id': '',
+                                   'code': '',
+                                   'capcha[]': [],
+                                   'func': 'active',
+                                   'dopinfa': 'ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 Ti (0x000024C9) Direct3D11 vs_5_0 ps_5_0, D3D11)',
+                               }
+                               )
+
 CNST_MEMBERS = ReqConstant(url='https://profitcentr.com/members',
                            headers={
                                'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',

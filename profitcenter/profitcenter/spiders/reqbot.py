@@ -1,10 +1,13 @@
+import json
+import random
 import time
 from copy import deepcopy
-from typing import Iterable
+from typing import Iterable, Union
 
 import re
 import scrapy
-from scrapy import Request, Selector, FormRequest
+from scrapy import Request, Selector, FormRequest, Spider
+from twisted.internet.defer import Deferred
 
 from .constants.reqbot import *
 from ..solve import Determinant
@@ -12,6 +15,7 @@ from ..solve import Determinant
 from random import randint
 
 from w3lib.url import url_query_parameter
+from ..utils import BotData
 
 from datetime import datetime
 
@@ -64,6 +68,7 @@ class ReqParser:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.solver = Determinant()
+        self.data = BotData()
 
     def get_cookies(self, response):
         cookies = {}
@@ -111,8 +116,8 @@ class ReqParser:
         return tasks
 
 
-class ReqbotSpider(ReqParser, scrapy.Spider):
-    name = "reqbot"
+class RegbotSpider(ReqParser, scrapy.Spider):
+    name = "register"
     cookies = {'googtrans': None}
     username = ""
     password = ""
@@ -120,7 +125,6 @@ class ReqbotSpider(ReqParser, scrapy.Spider):
     tasks = []
     grind_summ = 0
     custom_settings = {
-        # 'PROXY': '127.0.0.1:8080',
         # 'COOKIES_ENABLED': True,
         'DOWNLOADER_MIDDLEWARES': {
             'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 1,
@@ -130,16 +134,106 @@ class ReqbotSpider(ReqParser, scrapy.Spider):
     }
 
     def __init__(self, *args, **kwargs):
+        self.host = kwargs['host']
+        self.port = kwargs['port']
+        self.email = kwargs['email']
+        self.username = self.email.split("@")[0][:9].replace('.', '')
+        self.proxy = f"http://GfEGR2:IjbL8SVayj@{kwargs['host']}:{kwargs['port']}"
         super().__init__(*args, **kwargs)
-        self.current_task_page = 0
-        self.username = kwargs['username']
-        self.password = kwargs['password']
-        self.log_task = False
 
     def start_requests(self):
-        yield Request(**CNST_SIGN_IN(), callback=self.sign_in_step_1,
-                      meta={'dont_merge_cookies': True},
-                      dont_filter=True)
+        yield Request(
+            "https://profitcentr.com/register",
+            callback=self.step_register,
+            meta={'dont_merge_cookies': True, "proxy": self.proxy},
+            dont_filter=True)
+
+    def step_register(self, response):
+        yield from self.step_active(response)
+        return
+        reqdata = deepcopy(CNST_REG_CAPTCHA_REGISTER)
+        reqdata.formdata['username'] = self.username
+        reqdata.formdata['email'] = self.email
+        reqdata.formdata['capcha[]'] = self.solve_captcha(response)
+
+        yield FormRequest(**reqdata(), callback=self.step_active,
+                          cookies=self.cookies,
+                          meta={"proxy": self.proxy},
+                          dont_filter=True)
+
+    def step_active(self, response):
+        from scrapy.shell import open_in_browser
+        open_in_browser(response)
+        reg_input_href = input("Введите ссылку для активации: ")
+        self.password = input("Введите пароль: ")
+
+        reqdata = deepcopy(CNST_REG_CAPTCHA_ACTIVATE)
+        reqdata.formdata['id'] = url_query_parameter(reg_input_href, 'id')
+        reqdata.formdata['code'] = url_query_parameter(reg_input_href, 'code')
+        reqdata.formdata['capcha[]'] = self.solve_captcha(response)
+
+        yield FormRequest(**reqdata(), callback=self.sign_in,
+                          cookies=self.cookies,
+                          meta={"proxy": self.proxy},
+                          dont_filter=True)
+
+    def sign_in(self, response):
+        from scrapy.shell import open_in_browser
+        open_in_browser(response)
+        reqdata = deepcopy(CNST_GET_CAPTCHA)
+        reqdata.formdata['username'] = self.username
+        reqdata.formdata['password'] = self.password
+        reqdata.formdata['capcha[]'] = self.solve_captcha(response)
+
+        yield FormRequest(**reqdata(), callback=self.update_cookies,
+                          cookies=self.cookies,
+                          meta={"proxy": self.proxy},
+                          dont_filter=True)
+
+    def update_cookies(self, response):
+        self.connector.create_bot(self.email, self.host, self.port, self.username, self.password)
+        self.connector.update_cookies(self.username, json.dumps(self.get_cookies(response)))
+        print("SUCCESS")
+
+
+class ReqbotSpider(ReqParser, scrapy.Spider):
+    name = "farm"
+    cookies = {'googtrans': None}
+    username = ""
+    password = ""
+    domain = "https://profitcentr.com/"
+    tasks = []
+    grind_summ = 0
+    custom_settings = {
+        # 'PROXY': 'http://GfEGR2:IjbL8SVayj@91.188.244.215:3000',
+        # 'COOKIES_ENABLED': True,
+        'DOWNLOADER_MIDDLEWARES': {
+            'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 1,
+            'scrapy.downloadermiddlewares.redirect.MetaRefreshMiddleware': None,
+            'profitcenter.middlewares.DelayedRequestsMiddleware': 2,
+        },
+        'DEFAULT_HEADERS': DEFAULT_HEADERS,
+    }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.current_task_page = 0
+        self.username = self.data.login
+        self.password = self.data.password
+        self.cookies = json.loads(self.data.cookies)
+        self.proxy = self.data.proxy
+        self.log_task = False
+        self.tasks_stack = []
+
+    def start_requests(self):
+        if not self.cookies:
+            yield Request(**CNST_SIGN_IN(), callback=self.sign_in_step_1,
+                          meta={'dont_merge_cookies': True, 'proxy': self.proxy},
+                          dont_filter=True)
+        else:
+            yield Request(**CNST_MEMBERS(), callback=self.members, cookies=self.cookies,
+                          meta={'proxy': self.proxy},
+                          dont_filter=True)
 
     def sign_in_step_1(self, response):
         self.cookies.update(self.get_cookies(response))
@@ -153,24 +247,29 @@ class ReqbotSpider(ReqParser, scrapy.Spider):
 
         yield FormRequest(**reqdata(), callback=self.sign_in_step_2,
                           cookies=self.cookies,
-                           dont_filter=True)
+                          meta={'proxy': self.proxy},
+                          dont_filter=True)
 
     def sign_in_step_2(self, response):
         self.cookies.update(self.get_cookies(response))
         yield Request(**CNST_MEMBERS(), callback=self.members, cookies=self.cookies,
-                       dont_filter=True)
+                      dont_filter=True,
+                      meta={'proxy': self.proxy})
 
     def members(self, response):
         self.cookies.update(self.get_cookies(response))
+        self.data.update_cookies(self.cookies)
         grind_url = f"{self.domain}{response.xpath(GRIND_URL).get()}"
         yield Request(grind_url, callback=self.grind_page, cookies=self.cookies,
-                       dont_filter=True)
+                      dont_filter=True,
+                      meta={'proxy': self.proxy})
 
     def grind_page(self, response):
         self.cookies.update(self.get_cookies(response))
         youtube_url = f"{self.domain}{response.xpath(YOUTUBE_TASK_PAGE_URL).get()}"
         yield Request(youtube_url, callback=self.youtube_task_page, cookies=self.cookies,
-                       dont_filter=True)
+                      dont_filter=True,
+                      meta={'proxy': self.proxy})
 
     def youtube_task_page(self, response):
         self.cookies.update(self.get_cookies(response))
@@ -190,6 +289,7 @@ class ReqbotSpider(ReqParser, scrapy.Spider):
                               callback=self.youtube_task_page,
                               cookies=self.cookies,
                               dont_filter=True,
+                              meta={'proxy': self.proxy}
                               )
             return
 
@@ -205,34 +305,49 @@ class ReqbotSpider(ReqParser, scrapy.Spider):
     def grinder(self):
         if self.tasks:
             if not self.log_task:
-                self.logger.info("№".center(5, ' ') + 'TASK'.center(10, ' ') + "PRICE".center(10, ' '))
+                self.logger.info(
+                    "№".center(5, ' ') + 'TASK'.center(10, ' ') + "PRICE".center(10, ' ') + "DURATION".center(10, " "))
+
                 for index, task in enumerate(self.tasks, 1):
-                    self.logger.info(str(index).center(5, ' ') + str(task._id).center(10, ' ') + str(task.price).center(10, ' '))
+                    self.logger.info(
+                        str(index).center(5, ' ') + str(task._id).center(10, ' ') + str(task.price).center(10,
+                                                                                                           ' ') + str(
+                            task.duration).center(10, " "))
                 self.log_task = True
-            self.current_task: Task = self.tasks.pop(0)
 
-            reqdata = deepcopy(CNST_AJAX_YOUTUBE)
-            reqdata.formdata['id'] = self.current_task._id
-            reqdata.formdata['hash'] = self.current_task._hash
-            reqdata.headers['Referer'] = self.tasks_url
+            if len(self.tasks_stack) < 5:
+                for i in range(min(5, len(self.tasks)) - len(self.tasks_stack)):
+                    self.tasks_stack.append(self.tasks.pop(0))
 
-            yield FormRequest(**reqdata(),
-                              callback=self.activate_task,
-                              cookies=self.cookies,
-                              dont_filter=True,
-                              )
+                for task in [t for t in self.tasks_stack if t.status == TaskStatus.undefinded]:
+                    task.status = TaskStatus.in_progress
+                    reqdata = deepcopy(CNST_AJAX_YOUTUBE)
+                    reqdata.formdata['id'] = task._id
+                    reqdata.formdata['hash'] = task._hash
+                    reqdata.headers['Referer'] = self.tasks_url
+                    yield FormRequest(**reqdata(),
+                                      callback=self.activate_task,
+                                      cookies=self.cookies,
+                                      dont_filter=True,
+                                      meta={'task': task,
+                                            'delay_request_by': random.random() * 2 + 1, 'proxy': self.proxy}
+                                      )
+
         else:
-            # yield Request(**CNST_MEMBERS(), callback=self.members, cookies=self.cookies,
-            #                dont_filter=True)
-
             self.log_task = False
-            if self.current_task_page < 8:
+            if self.current_task_page <= 6:
                 self.current_task_page += 1
             else:
-                self.current_task_page = 1
-                self.cookies = {}
-                yield from self.start_requests()
-                return
+                self.current_task_page = 0
+                time_now = datetime.now()
+                wait_to = datetime(year=time_now.year, month=time_now.month, day=time_now.day, hour=time_now.hour + 1)
+                sleep_seconds = (wait_to - time_now).seconds + random.randint(200, 300)
+                self.logger.info(f"SLEEP MINUTS: {sleep_seconds // 60} SECONDS: {sleep_seconds % 60} TO NEXT HOUR")
+                time.sleep(sleep_seconds)
+
+                # self.cookies = {}
+                # yield from self.start_requests()
+                # return
 
             time.sleep(3)
 
@@ -243,8 +358,8 @@ class ReqbotSpider(ReqParser, scrapy.Spider):
 
             reqdata.formdata['pages'] = str(self.current_task_page)
 
-            yield FormRequest(**reqdata(), callback=self.load_tasks_page, cookies=self.cookies, dont_filter=True)
-
+            yield FormRequest(**reqdata(), callback=self.load_tasks_page, cookies=self.cookies, dont_filter=True,
+                              meta={'proxy': self.proxy})
 
     def load_tasks_page(self, response):
         data = response.json()
@@ -261,37 +376,53 @@ class ReqbotSpider(ReqParser, scrapy.Spider):
 
         yield from self.grinder()
 
-
     def activate_task(self, response):
         data = response.json()
         btn = Selector(text=data['html'])
+        task = response.meta['task']
+        self.logger.info(f"ACTIVATE Task {task.__repr__()}")
         try:
-            self.current_task.task_url = re.search(r"\['open_window_ads_in']\('(http:\/\/.+)'\);",
-                                                   btn.xpath("//span/@onclick").get()).group(1)
-            self.current_task._ids = url_query_parameter(self.current_task.task_url, 'id_status')
-            self.current_task.id_video = url_query_parameter(self.current_task.task_url, 'id_video')
-            self.current_task.success_hash = url_query_parameter(self.current_task.task_url, 'hash')
-            yield Request(self.current_task.task_url, callback=self.fake_open_video, cookies=self.cookies)
+            task.task_url = re.search(r"\['open_window_ads_in']\('(http:\/\/.+)'\);",
+                                      btn.xpath("//span/@onclick").get()).group(1)
+            task._ids = url_query_parameter(task.task_url, 'id_status')
+            task.id_video = url_query_parameter(task.task_url, 'id_video')
+            task.success_hash = url_query_parameter(task.task_url, 'hash')
+            yield Request(task.task_url, callback=self.fake_open_video, cookies=self.cookies,
+                          meta={'proxy': self.proxy})
 
             reqdata = deepcopy(CNST_CONFIRM_YOUTUBE_TASK)
-            reqdata.formdata['id'] = self.current_task._id
-            reqdata.formdata['ids'] = self.current_task._ids
-            reqdata.formdata['hash'] = self.current_task.success_hash
-            reqdata.formdata['video'] = self.current_task.id_video
+            reqdata.formdata['id'] = task._id
+            reqdata.formdata['ids'] = task._ids
+            reqdata.formdata['hash'] = task.success_hash
+            reqdata.formdata['video'] = task.id_video
             reqdata.headers['Referer'] = self.tasks_url
-
-            time.sleep(self.current_task.duration + 2)
+            self.logger.info(f"CONFIRM SEND Task {task.__repr__()}")
             yield FormRequest(**reqdata(),
                               callback=self.success_task,
                               dont_filter=True,
-                              meta={'dont_merge_cookies': True})
+                              meta={'dont_merge_cookies': True, 'task': task, 'delay_request_by': task.duration + 2,
+                                    'proxy': self.proxy})
         except:
             yield from self.grinder()
 
     def success_task(self, response):
-        print("".join(response.xpath("//span//text()").getall()))
+        task = response.meta['task']
+        self.logger.info(f"CONFIRM Task {task.__repr__()}")
+        self.logger.info("".join(response.xpath("//span//text()").getall()))
+        task.status = TaskStatus.ready
+
+        value = float(re.search(r'\d\.\d+', "".join(response.xpath("//span//text()").getall())).group(0))
+        self.data.add_amount(value)
+        if task in self.tasks_stack:
+            self.tasks_stack.remove(task)
+        else:
+            a = 1
+
         yield from self.grinder()
 
     def fake_open_video(self, response):
-        print(f"Fake open {response.url}")
+        self.logger.info(f"Fake open {response.url}")
 
+    def close(self, reason: str):
+        self.data.close_connection()
+        super().close(self, reason)
